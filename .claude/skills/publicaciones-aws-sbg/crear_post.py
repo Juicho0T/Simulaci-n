@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 except ImportError:
     sys.exit("Falta Pillow. Instálalo con: pip install Pillow")
 
@@ -238,18 +238,16 @@ DECORACIONES = {"orbitas": deco_orbitas, "circuito": deco_circuito, "bloques": d
 
 # --------------------------------------------------------------------------- bloques de contenido
 
-def pegar_logo(img, d, ruta_logo, x, y, ancho, alto):
-    """Pega el logo dentro de un marco redondeado. Devuelve False si no se pudo cargar."""
+def pegar_logo(img, ruta_logo, x, y, lado):
+    """Pega el logo (con su transparencia) centrado en un cuadro de 'lado' px. False si no se pudo cargar."""
     try:
         logo = Image.open(ruta_logo).convert("RGBA")
     except (OSError, ValueError):
         return False
-    logo = ImageOps.fit(logo, (s(ancho), s(alto)), method=getattr(Image, "Resampling", Image).LANCZOS)
-    mascara = Image.new("L", logo.size, 0)
-    ImageDraw.Draw(mascara).rounded_rectangle([0, 0, logo.size[0] - 1, logo.size[1] - 1], radius=s(18), fill=255)
-    mascara = ImageChops.multiply(mascara, logo.getchannel("A"))  # respeta la transparencia del logo si la tiene
-    d.rounded_rectangle([s(x - 6), s(y - 6), s(x + ancho + 6), s(y + alto + 6)], radius=s(22), fill=ACENTO)
-    img.paste(logo.convert("RGB"), (s(x), s(y)), mascara)
+    logo = ImageOps.contain(logo, (s(lado), s(lado)), method=getattr(Image, "Resampling", Image).LANCZOS)
+    px = s(x) + (s(lado) - logo.size[0]) // 2
+    py = s(y) + (s(lado) - logo.size[1]) // 2
+    img.paste(logo.convert("RGB"), (px, py), logo.getchannel("A"))
     return True
 
 
@@ -263,10 +261,10 @@ def marca_sin_logo(d, x, y, lado):
 
 
 def encabezado(img, d, etiqueta, ruta_logo):
-    lx, ly, lw, lh = MARGEN, 70, 118, 133  # proporción del logo (322x362)
-    if not (ruta_logo and pegar_logo(img, d, ruta_logo, lx, ly, lw, lh)):
-        marca_sin_logo(d, lx, ly + 8, lw)
-    tx = lx + lw + 32
+    lx, ly, lado = MARGEN, 72, 122
+    if not (ruta_logo and pegar_logo(img, ruta_logo, lx, ly, lado)):
+        marca_sin_logo(d, lx, ly, lado)
+    tx = lx + lado + 30
     escribir(d, (s(tx), s(ly + 34)), "AWS STUDENT BUILDER GROUP", cargar_fuente(FUENTES_BOLD, 30), BLANCO, "lm")
 
     fuente = cargar_fuente(FUENTES_BOLD, 24)
