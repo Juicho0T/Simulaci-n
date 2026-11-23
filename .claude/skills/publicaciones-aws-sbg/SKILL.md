@@ -51,6 +51,9 @@ Ejecuta el script con los datos recopilados:
 - `--tipo`: `anuncio`, `resultado`, `taller` o `tutorial`. Define la etiqueta de la imagen y su estilo visual.
 - `--estilo` (opcional): `orbitas`, `circuito`, `bloques` o `terminal`, para usar otro estilo distinto al del tipo. Las decoraciones cambian en cada ejecución; si al usuario no le gusta el resultado, vuelve a ejecutarlo o prueba otro estilo.
 - En un tutorial o un post sin lugar físico, usa algo como "Online, enlace en la bio" en `--lugar`.
+- `--logo` (opcional): ruta a otro logo. Por defecto usa `assets/logo.png`, que está junto al script. Si no lo encuentra, pone una marca genérica y avisa.
+
+La imagen usa la paleta del grupo: fondo `#151C26` con cuadrícula `#2A303A` y acento morado `#AE5CFF`. Para cambiarla, edita las constantes de la sección "Paleta del grupo" al inicio de `crear_post.py`.
 
 La imagen se genera de 1080 × 1440 píxeles (formato 3:4) en la carpeta `salida/`, con un nombre que incluye la fecha y hora de creación.
 
