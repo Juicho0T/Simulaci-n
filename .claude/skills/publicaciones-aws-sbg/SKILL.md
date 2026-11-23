@@ -1,42 +1,42 @@
 ---
 name: publicaciones-aws-sbg
-description: Crea publicaciones de Instagram para el AWS Student Builder Group, con texto e imagen en formato 3:4. Úsalo cuando el usuario pida una publicación de anuncio de evento, resultado de evento, resumen de taller o tutorial.
+description: Crea publicaciones de Instagram para el AWS Student Builder Group, con texto e imagen en formato 3:4. Úsalo para anuncios de evento, resultados de evento, resúmenes de taller y tutoriales.
 ---
 
 # Publicaciones AWS Student Builder Group
 
-## Paso 1: Tipo de publicación
+Sigue estos pasos en orden.
 
-Pregunta primero qué tipo de publicación quiere el usuario:
+## 1. Preguntar el tipo de publicación
+
+Pregunta al usuario qué tipo de publicación quiere:
 - Anuncio de evento
 - Resultado de evento
 - Resumen de taller
 - Tutorial
 
-## Paso 2: Datos según el tipo
+## 2. Pedir solo los datos de ese tipo
 
-Pide solo los datos que correspondan:
-- **Anuncio de evento:** título, fecha, lugar, enlace o forma de registro.
+- **Anuncio de evento:** título, fecha, lugar, registro (enlace o forma de registrarse).
 - **Resultado de evento:** título, fecha, lugar, número de asistentes, highlights.
-- **Resumen de taller:** tema, fecha, lugar, aprendizajes clave (3 a 5).
-- **Tutorial:** tema, pasos numerados (3 a 6), enlace de referencia si existe.
+- **Resumen de taller:** tema, fecha, lugar, 3 a 5 aprendizajes clave.
+- **Tutorial:** tema, 3 a 6 pasos, enlace de referencia (opcional).
 
-## Paso 3: Texto para Instagram
+## 3. Escribir el texto para Instagram
 
-Escribe el texto de la publicación con:
 - Emojis relevantes, sin exagerar.
-- Hashtags como #AWS, #StudentBuilderGroup, #AWSCommunity y uno o dos del tema.
+- Hashtags #AWS, #StudentBuilderGroup y #AWSCommunity, más uno o dos del tema.
 - Una llamada a la acción al final (registrarse, seguirnos, comentar, compartir).
-- Máximo unas 150 palabras, salvo que el usuario pida más.
+- Máximo unas 150 palabras.
 
-## Paso 4: Imagen en formato 3:4
+## 4. Generar la imagen
 
-Ejecuta el script `crear_post.py` con los datos recopilados:
+Ejecuta el script con los datos recopilados (en un tutorial o taller, usa el tema como título):
 
     python .claude/skills/publicaciones-aws-sbg/crear_post.py --titulo "..." --fecha "..." --lugar "..."
 
-La imagen debe generarse con:
-- Formato 3:4, de **1080 × 1440 píxeles**.
-- Guardarse en la carpeta `salida/`.
+Genera una imagen de 1080 × 1440 píxeles (formato 3:4) en la carpeta `salida/`, con un nombre que incluye la fecha y hora de creación.
 
-Al terminar, muestra al usuario la ruta de la imagen y el texto de la publicación, listos para copiar.
+## 5. Entregar el resultado
+
+Muestra al usuario la ruta de la imagen y el texto de la publicación, listos para copiar.
