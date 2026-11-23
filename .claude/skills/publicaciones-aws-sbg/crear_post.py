@@ -16,7 +16,7 @@ try:
 except ImportError:
     sys.exit("Falta Pillow. Instálalo con: pip install Pillow")
 
-ANCHO, ALTO = 1080, 1350
+ANCHO, ALTO = 1080, 1440
 MARGEN = 90
 
 FONDO_ARRIBA = (35, 47, 62)    # azul marino
@@ -119,7 +119,7 @@ def crear_post(titulo, fecha, lugar, tipo, carpeta):
 
 
 def main():
-    p = argparse.ArgumentParser(description="Genera una imagen de 1080x1350 para Instagram.")
+    p = argparse.ArgumentParser(description="Genera una imagen de 1080x1440 para Instagram.")
     p.add_argument("--titulo", required=True)
     p.add_argument("--fecha", required=True)
     p.add_argument("--lugar", required=True)

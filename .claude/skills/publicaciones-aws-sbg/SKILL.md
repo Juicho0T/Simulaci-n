@@ -36,7 +36,7 @@ Ejecuta el script `crear_post.py` con los datos recopilados:
     python .claude/skills/publicaciones-aws-sbg/crear_post.py --titulo "..." --fecha "..." --lugar "..."
 
 La imagen debe generarse con:
-- Formato 3:4, de **1080 × 1350 píxeles**.
+- Formato 3:4, de **1080 × 1440 píxeles**.
 - Guardarse en la carpeta `salida/`.
 
 Al terminar, muestra al usuario la ruta de la imagen y el texto de la publicación, listos para copiar.
