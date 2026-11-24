@@ -541,6 +541,7 @@
         contract.position.set(1.05, 2.9 + Math.sin(t * 3) * 0.08, 1.3); contract.rotation.y = Math.sin(t * 2) * 0.3; contract.scale.setScalar(Math.max(0.001, eBack(ct)));
         desPlaines.scale.setScalar(1.3 * Math.max(0.001, eBack(prog(t, c(6), 0.8))));
         dpLab.visible = t > c(6) + 0.5;
+        [kroc, dick4, mac4].forEach((m) => m.root.userData.tag && (m.root.userData.tag.visible = t < c(6)));
         many.forEach((s, i) => s.scale.setScalar(0.45 * Math.max(0.001, eBack(prog(t, c(7) + i * 0.08, 0.5)))));
         const out = eInOut(prog(t, c(7), 3));
         const a = lerp(0.15, -0.25, prog(t, 45, 25));
@@ -703,7 +704,8 @@
         if (w.endsWith("*")) inKey = false;
       });
       const hw = hook.querySelectorAll(".hw");
-      tl.fromTo(hw, { opacity: 0.35 }, { opacity: 1, duration: 0.2, stagger: (6.9 - 0.7) / hw.length, ease: "none" }, 0.7);
+      const h0 = NARR[0].start, h1 = NARR.filter((c) => c.scene === 0).slice(-1)[0].end;
+      tl.fromTo(hw, { opacity: 0.35 }, { opacity: 1, duration: 0.2, stagger: (h1 - h0) / hw.length, ease: "none" }, h0);
       tl.fromTo("#header", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 8);
 
       // Entradas y salidas de cada escena + fundido
