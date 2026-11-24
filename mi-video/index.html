@@ -9,32 +9,35 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <script src="assets/three.min.js"></script>
     <style>
       :root {
-        --ground: #0b1020;
-        --ground-2: #121a33;
+        --ground: #070b18;
         --ink: #f3f5fb;
-        --muted: #8b95b5;
+        --muted: #a3acc9;
         --accent: #ffcc33;
         --accent-2: #4fd1c5;
-        --hot: #ff6b6b;
         --font-display: "Space Grotesk", "DejaVu Sans", sans-serif;
         --font-mono: "JetBrains Mono", "DejaVu Sans Mono", monospace;
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body {
-        width: 1080px; height: 1920px; overflow: hidden;
-        background: var(--ground);
-      }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--ground); }
       #root {
         position: relative; width: 1080px; height: 1920px; overflow: hidden;
-        font-family: var(--font-display); color: var(--ink);
-        background: radial-gradient(1200px 900px at 50% 45%, var(--ground-2), var(--ground));
+        font-family: var(--font-display); color: var(--ink); background: var(--ground);
       }
       .clip { position: absolute; inset: 0; }
 
+      /* Lienzo 3D a sangre completa, detrás del texto */
+      #gl { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; z-index: 1; }
+      /* Velo superior para que el texto se lea sobre el 3D */
+      #veil {
+        position: absolute; left: 0; top: 0; width: 1080px; height: 900px; z-index: 2; pointer-events: none;
+        background: linear-gradient(180deg, rgba(7, 11, 24, 0.92) 0%, rgba(7, 11, 24, 0.75) 55%, rgba(7, 11, 24, 0) 100%);
+      }
+      #fade { position: absolute; inset: 0; z-index: 4; background: var(--ground); opacity: 0; pointer-events: none; }
+
       /* Zona segura 9:16 (TikTok/Reels/Shorts): y 288–1248, x 120–888 (780 bajo y=840) */
-      /* ---------- Cabecera + línea de tiempo persistente ---------- */
       #header { z-index: 5; }
       .kicker {
         position: absolute; top: 296px; left: 120px; width: 768px;
@@ -56,12 +59,11 @@
         font-family: var(--font-mono); font-size: 28px; color: var(--muted);
       }
 
-      /* ---------- Escenas ---------- */
-      .scene { z-index: 2; }
+      .scene { z-index: 3; }
       .year {
         position: absolute; top: 470px; left: 120px;
         font-size: 160px; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
-        color: var(--accent);
+        color: var(--accent); text-shadow: 0 10px 40px rgba(255, 204, 51, 0.35);
       }
       .title {
         position: absolute; top: 640px; left: 120px; width: 768px;
@@ -71,87 +73,30 @@
         position: absolute; top: 718px; left: 120px; width: 660px;
         font-size: 31px; color: var(--muted); line-height: 1.25;
       }
-      .stage { position: absolute; left: 120px; width: 660px; top: 800px; height: 290px; }
+      .data {
+        position: absolute; top: 782px; left: 120px; width: 660px;
+        font-family: var(--font-mono); font-size: 40px; color: var(--ink);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+      }
+      .data b { color: var(--accent); }
+      .data em { font-style: normal; color: var(--accent-2); font-weight: 700; }
+      .big {
+        position: absolute; left: 120px; width: 660px; top: 960px; text-align: center;
+        font-family: var(--font-mono); font-size: 72px; font-weight: 700; color: var(--accent);
+        text-shadow: 0 4px 30px rgba(0, 0, 0, 0.95);
+        background: rgba(7, 11, 24, 0.72); border-radius: 28px; padding: 10px 0;
+      }
+      .big sup { font-size: 40px; }
+      .cta { font-family: var(--font-display); font-size: 84px; letter-spacing: -0.03em; }
 
-      /* Escena 1 — Monte Carlo */
-      .mc-box {
-        position: absolute; left: 0; top: 0; width: 280px; height: 280px;
-        border: 4px solid #3a4570; overflow: hidden;
-      }
-      .mc-arc {
-        position: absolute; left: -280px; bottom: -280px; width: 560px; height: 560px;
-        border-radius: 50%; border: 4px solid var(--accent-2);
-      }
-      .mc-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; margin: -5px 0 0 -5px; }
-      .mc-dot.in { background: var(--accent-2); }
-      .mc-dot.out { background: var(--hot); }
-      .mc-pi {
-        position: absolute; left: 320px; top: 90px; width: 340px;
-        font-family: var(--font-mono); font-size: 50px; color: var(--ink);
-      }
-      .mc-pi b { color: var(--accent); }
-
-      /* Escena 2 — Cuadrados medios */
-      .ms-row {
-        display: flex; align-items: baseline; gap: 22px; margin-bottom: 16px;
-        font-family: var(--font-mono); font-size: 40px;
-      }
-      .ms-row .seed { color: var(--accent); width: 110px; }
-      .ms-row .arrow { color: var(--muted); }
-      .ms-row .sq { color: var(--muted); }
-      .ms-row .sq em { font-style: normal; color: var(--accent-2); font-weight: 700; }
-
-      /* Escena 3 — Colas GPSS */
-      .q-server {
-        position: absolute; left: 500px; top: 20px; width: 160px; height: 160px; border-radius: 24px;
-        border: 5px solid var(--accent); display: flex; align-items: center; justify-content: center;
-        font-family: var(--font-mono); font-size: 28px; color: var(--accent);
-      }
-      .q-cust { position: absolute; top: 75px; width: 50px; height: 50px; border-radius: 50%; background: var(--accent-2); }
-      .q-label { position: absolute; left: 0; top: 220px; font-family: var(--font-mono); font-size: 30px; color: var(--muted); }
-      .q-label b { color: var(--ink); }
-
-      /* Escena 4 — SIMULA 67 */
-      .code {
-        position: absolute; inset: 0; border-radius: 22px; padding: 18px 30px;
-        background: #070b17; border: 3px solid #2a3354;
-        font-family: var(--font-mono); font-size: 29px; line-height: 1.45;
-      }
-      .code .ln { opacity: 0; white-space: pre; }
-      .kw { color: var(--accent); }
-      .id { color: var(--accent-2); }
-      .cm { color: var(--muted); }
-
-      /* Escena 5 — Mersenne Twister */
-      .bits {
-        display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px 8px; width: 660px;
-        font-family: var(--font-mono); font-size: 30px; text-align: center;
-      }
-      .bit { color: #68729a; }
-      .period {
-        position: absolute; left: 0; width: 660px; top: 185px; text-align: center;
-        font-family: var(--font-mono); font-size: 66px; font-weight: 700; color: var(--accent);
-      }
-      .period sup { font-size: 36px; }
-
-      /* Escena 6 — Hoy */
-      .chips { display: flex; flex-wrap: wrap; gap: 12px; }
-      .chip {
-        padding: 8px 20px; border-radius: 999px; border: 3px solid var(--accent-2);
-        font-size: 28px; font-weight: 500; color: var(--ink); background: rgba(79, 209, 197, 0.08);
-      }
-      .cta {
-        position: absolute; left: 0; width: 660px; top: 190px; text-align: center;
-        font-size: 76px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em;
-      }
-
-      /* ---------- Subtítulos animados ---------- */
+      /* Subtítulos animados */
       .cap { z-index: 6; }
       .cap-box {
         position: absolute; left: 120px; width: 660px; top: 1110px;
         text-align: center; font-size: 46px; font-weight: 700; line-height: 1.2;
-        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+        text-shadow: 0 3px 4px rgba(0, 0, 0, 0.95), 0 0 24px rgba(0, 0, 0, 0.9);
       }
+      .cap-box .w { background: rgba(7, 11, 24, 0.55); border-radius: 10px; padding: 0 0.12em; }
       .w { display: inline-block; margin: 0 0.1em; opacity: 0; color: var(--ink); }
       .w.key { color: var(--accent); }
     </style>
@@ -165,7 +110,10 @@
       data-width="1080"
       data-height="1920"
     >
-      <!-- Cabecera persistente con línea de tiempo de fechas clave -->
+      <canvas id="gl" width="1080" height="1920"></canvas>
+      <div id="veil"></div>
+      <div id="fade"></div>
+
       <div id="header" class="clip" data-start="0" data-duration="60" data-track-index="0">
         <div class="kicker">Historia de la <b>simulación</b></div>
         <div class="tl" id="tl">
@@ -174,95 +122,432 @@
         </div>
       </div>
 
-      <!-- Escena 1 -->
       <div id="s1" class="clip scene" data-start="0" data-duration="10" data-track-index="1">
         <div class="year">1946</div>
         <div class="title">Método Monte Carlo</div>
         <div class="sub">Lanzar puntos al azar para estimar π</div>
-        <div class="stage">
-          <div class="mc-box" id="mc-box"><div class="mc-arc"></div></div>
-          <div class="mc-pi">π ≈ <b id="mc-val">0.000</b></div>
-        </div>
+        <div class="data">π ≈ <b id="mc-val">0.000</b></div>
       </div>
 
-      <!-- Escena 2 -->
       <div id="s2" class="clip scene" data-start="10" data-duration="10" data-track-index="1">
         <div class="year">1949</div>
         <div class="title">Cuadrados medios</div>
         <div class="sub">Eleva al cuadrado y toma el centro</div>
-        <div class="stage" id="ms-stage"></div>
+        <div class="data" id="ms-data"></div>
       </div>
 
-      <!-- Escena 3 -->
       <div id="s3" class="clip scene" data-start="20" data-duration="10" data-track-index="1">
         <div class="year">1961</div>
         <div class="title">GPSS, de IBM</div>
         <div class="sub">Colas: llegadas, esperas y servicio</div>
-        <div class="stage" id="q-stage">
-          <div class="q-server">SERVIDOR</div>
-          <div class="q-label">Clientes atendidos: <b id="q-count">0</b></div>
-        </div>
+        <div class="data">Clientes atendidos: <b id="q-count">0</b></div>
       </div>
 
-      <!-- Escena 4 -->
       <div id="s4" class="clip scene" data-start="30" data-duration="10" data-track-index="1">
         <div class="year">1967</div>
         <div class="title">SIMULA 67</div>
         <div class="sub">El primer lenguaje con clases y objetos</div>
-        <div class="stage">
-          <div class="code">
-            <div class="ln"><span class="kw">CLASS</span> <span class="id">Cliente</span>;</div>
-            <div class="ln"><span class="kw">BEGIN</span></div>
-            <div class="ln">  <span class="kw">REAL</span> llegada;</div>
-            <div class="ln">  <span class="id">Hold</span>(servicio);</div>
-            <div class="ln"><span class="kw">END</span>;</div>
-            <div class="ln"><span class="cm">! nace la POO</span></div>
-          </div>
-        </div>
       </div>
 
-      <!-- Escena 5 -->
       <div id="s5" class="clip scene" data-start="40" data-duration="10" data-track-index="1">
         <div class="year">1997</div>
         <div class="title">Mersenne Twister</div>
         <div class="sub">El generador aleatorio más usado</div>
-        <div class="stage">
-          <div class="bits" id="bits"></div>
-          <div class="period">2<sup>19937</sup> − 1</div>
-        </div>
+        <div class="big" id="period">2<sup>19937</sup> − 1</div>
       </div>
 
-      <!-- Escena 6 -->
       <div id="s6" class="clip scene" data-start="50" data-duration="10" data-track-index="1">
         <div class="year">Hoy</div>
         <div class="title">Simulación en Python</div>
         <div class="sub">Lo que practicas en este curso</div>
-        <div class="stage">
-          <div class="chips">
-            <div class="chip">Números aleatorios</div>
-            <div class="chip">Kolmogorov–Smirnov</div>
-            <div class="chip">Transformada inversa</div>
-            <div class="chip">Poisson</div>
-            <div class="chip">Exponencial</div>
-            <div class="chip">LogNormal</div>
-          </div>
-          <div class="cta">¡Tu turno!</div>
-        </div>
+        <div class="big cta" id="cta">¡Tu turno!</div>
       </div>
 
-      <!-- Subtítulos: el script crea un bloque .cap por frase -->
       <div id="captions"></div>
     </div>
 
     <script>
       const tl = gsap.timeline({ paused: true });
-      const root = document.getElementById("root");
 
-      // Generador congruencial lineal: determinista (nada de Math.random).
+      /* ================= utilidades deterministas ================= */
       let seed = 12345;
       const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+      const hash = (a, b) => {
+        let h = (a * 374761393 + b * 668265263) | 0;
+        h = Math.imul(h ^ (h >>> 13), 1274126177);
+        return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+      };
+      const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+      const prog = (t, a, d) => clamp((t - a) / d);
+      const eOut = (x) => 1 - Math.pow(1 - x, 3);
+      const eInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+      const eBack = (x) => { const c = 1.9; return x <= 0 ? 0 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+      const eBounce = (x) => {
+        const n = 7.5625, d = 2.75;
+        if (x < 1 / d) return n * x * x;
+        if (x < 2 / d) return n * (x -= 1.5 / d) * x + 0.75;
+        if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + 0.9375;
+        return n * (x -= 2.625 / d) * x + 0.984375;
+      };
+      const lerp = (a, b, k) => a + (b - a) * k;
 
-      /* ---------------- Línea de tiempo con fechas clave ---------------- */
+      // Textura de texto dibujada en un canvas (sin cargar fuentes por red)
+      function textTex(lines, opts = {}) {
+        const w = opts.w || 256, h = opts.h || 256;
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const g = c.getContext("2d");
+        g.fillStyle = opts.bg || "#141c3a";
+        g.fillRect(0, 0, w, h);
+        if (opts.border) { g.strokeStyle = opts.border; g.lineWidth = opts.bw || 10; g.strokeRect(0, 0, w, h); }
+        g.textBaseline = "middle";
+        g.textAlign = opts.align || "center";
+        lines.forEach((ln, i) => {
+          const parts = Array.isArray(ln) ? ln : [[ln, opts.color || "#f3f5fb"]];
+          g.font = opts.font || "bold 170px 'DejaVu Sans Mono', monospace";
+          let x = opts.align === "left" ? (opts.pad || 20) : w / 2;
+          const y = opts.lineH ? (opts.pad || 20) + opts.lineH * (i + 0.5) : h / 2;
+          if (opts.align === "left") {
+            parts.forEach(([txt, col]) => { g.fillStyle = col; g.fillText(txt, x, y); x += g.measureText(txt).width; });
+          } else {
+            g.fillStyle = parts[0][1]; g.fillText(parts.map((p) => p[0]).join(""), x, y);
+          }
+        });
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        return t;
+      }
+
+      /* ================= motor 3D ================= */
+      const canvas = document.getElementById("gl");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(1080, 1920, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color("#070b18");
+      scene.fog = new THREE.Fog("#070b18", 14, 34);
+      const camera = new THREE.PerspectiveCamera(48, 1080 / 1920, 0.1, 100);
+      camera.setViewOffset(1080, 1920, 0, -360, 1080, 1920); // el 3D vive en la mitad inferior
+
+      scene.add(new THREE.HemisphereLight("#9fb4ff", "#10142a", 0.9));
+      const key = new THREE.DirectionalLight("#ffffff", 2.2);
+      key.position.set(5, 9, 6);
+      scene.add(key);
+      const rim = new THREE.PointLight("#4fd1c5", 40, 30);
+      rim.position.set(-6, 4, -5);
+      scene.add(rim);
+      const warm = new THREE.PointLight("#ffcc33", 30, 25);
+      warm.position.set(6, 3, 4);
+      scene.add(warm);
+
+      // Suelo en rejilla y estrellas: profundidad en todas las escenas
+      const grid = new THREE.GridHelper(80, 80, "#2c3a70", "#18214a");
+      grid.position.y = -1.2;
+      scene.add(grid);
+      const starGeo = new THREE.BufferGeometry();
+      const sp = [];
+      for (let i = 0; i < 500; i++) {
+        const r = 22 + rnd() * 10, a = rnd() * Math.PI * 2, y = rnd() * 22 - 2;
+        sp.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      }
+      starGeo.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3));
+      scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: "#8fa2ff", size: 0.12, fog: false })));
+
+      const mat = (color, emissive = "#000000", ei = 0, extra = {}) =>
+        new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: ei, roughness: 0.35, metalness: 0.25, ...extra });
+      const TEAL = "#4fd1c5", GOLD = "#ffcc33", HOT = "#ff6b6b", SLATE = "#1a2450";
+
+      const groups = [];
+      const addGroup = () => { const g = new THREE.Group(); scene.add(g); groups.push(g); return g; };
+      const setCam = (x, y, z, lx, ly, lz) => { camera.position.set(x, y, z); camera.lookAt(lx, ly, lz); };
+
+      /* ---------- Escena 1: Monte Carlo ---------- */
+      const g1 = addGroup();
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(4, 0.16, 4), mat(SLATE));
+      tile.position.y = -0.08;
+      g1.add(tile);
+      const tileEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(4, 0.16, 4)), new THREE.LineBasicMaterial({ color: "#5b6cb8" }));
+      tileEdge.position.y = -0.08;
+      g1.add(tileEdge);
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(4, 0.05, 8, 80, Math.PI / 2), mat(TEAL, TEAL, 1.6));
+      arc.rotation.x = -Math.PI / 2;
+      arc.position.set(-2, 0.02, 2);
+      g1.add(arc);
+      const N = 160, drops = [];
+      let inside = 0;
+      const piVals = [];
+      const ballGeo = new THREE.SphereGeometry(0.09, 16, 12);
+      const matIn = mat(TEAL, TEAL, 0.8), matOut = mat(HOT, HOT, 0.8);
+      for (let k = 0; k < N; k++) {
+        const x = rnd(), y = rnd();
+        const isIn = x * x + y * y <= 1;
+        if (isIn) inside++;
+        piVals.push((4 * inside) / (k + 1));
+        const m = new THREE.Mesh(ballGeo, isIn ? matIn : matOut);
+        m.position.set(-2 + 4 * x, 0.09, 2 - 4 * y);
+        g1.add(m);
+        drops.push({ m, t0: 1.4 + k * 0.045, y0: 0.09 });
+      }
+      function upd1(t) {
+        drops.forEach(({ m, t0, y0 }) => {
+          const p = prog(t, t0, 0.55);
+          m.visible = t >= t0;
+          m.position.y = y0 + 5 * (1 - eBounce(p));
+        });
+        g1.rotation.y = -0.2 + t * 0.06;
+        const a = 0.55 + t * 0.07;
+        setCam(Math.sin(a) * 6.6, lerp(8.5, 5.2, eInOut(prog(t, 0, 10))), Math.cos(a) * 6.6, 0, -1.2, 0);
+      }
+
+      /* ---------- Escena 2: Cuadrados medios ---------- */
+      const g2 = addGroup();
+      const digitTex = {};
+      for (let d = 0; d <= 9; d++) {
+        digitTex["n" + d] = textTex([String(d)], { color: "#f3f5fb", border: "#3a4a90" });
+        digitTex["m" + d] = textTex([String(d)], { color: "#0b1020", bg: TEAL, border: "#bff5ef" });
+      }
+      const steps = [];
+      let x0 = 5735;
+      const msLines = [];
+      const cubeGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+      for (let r = 0; r < 4; r++) {
+        const sq = String(x0 * x0).padStart(8, "0");
+        const mid = sq.slice(2, 6);
+        msLines.push(`${String(x0).padStart(4, "0")}² = ${sq.slice(0, 2)}<em>${mid}</em>${sq.slice(6)}`);
+        const cubes = sq.split("").map((ch, i) => {
+          const isMid = i >= 2 && i < 6;
+          const m = new THREE.Mesh(cubeGeo, new THREE.MeshStandardMaterial({
+            map: digitTex[(isMid ? "m" : "n") + ch], roughness: 0.4, metalness: 0.1,
+            emissive: isMid ? TEAL : "#000000", emissiveIntensity: isMid ? 0.25 : 0,
+          }));
+          g2.add(m);
+          return { m, i, isMid };
+        });
+        steps.push({ cubes, t0: 11.2 + r * 2.1 });
+        x0 = parseInt(mid, 10);
+      }
+      function upd2(t) {
+        steps.forEach(({ cubes, t0 }) => {
+          cubes.forEach(({ m, i, isMid }) => {
+            const tin = t0 + i * 0.07;
+            const pin = eBack(prog(t, tin, 0.45));
+            const lift = eOut(prog(t, t0 + 1.0, 0.5));
+            const out = prog(t, t0 + 1.75, 0.35);
+            m.visible = t >= tin && t < t0 + 2.1;
+            m.scale.setScalar(Math.max(0.001, pin * (1 - out)));
+            m.position.set((i - 3.5) * 1.05, isMid ? lift * 1.1 : -lift * 0.6, isMid ? lift * 0.8 : -lift * 0.4);
+            m.rotation.x = (1 - pin) * -1.6 + (isMid ? lift * Math.PI * 2 : 0);
+          });
+        });
+        const a = 0.7 - prog(t, 10, 10) * 0.5;
+        setCam(Math.sin(a) * 11.5, 3.6, Math.cos(a) * 11.5, 0, -0.6, 0);
+        const r = clamp(Math.floor((t - 11.2) / 2.1), 0, 3);
+        const el = document.getElementById("ms-data");
+        if (el.dataset.r !== String(r)) { el.innerHTML = msLines[r]; el.dataset.r = String(r); }
+      }
+
+      /* ---------- Escena 3: Cola GPSS ---------- */
+      const g3 = addGroup();
+      const belt = new THREE.Mesh(new THREE.BoxGeometry(12, 0.12, 1.4), mat("#141c3a"));
+      belt.position.set(-1.5, -0.06, 0);
+      g3.add(belt);
+      for (let i = 0; i < 24; i++) {
+        const strip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 1.3), mat("#2a3a7a", "#4fd1c5", 0.15));
+        strip.position.set(-7.3 + i * 0.5, 0.01, 0);
+        g3.add(strip);
+      }
+      const server = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 1.8), mat("#1b2140", GOLD, 0.15, { transparent: true, opacity: 0.85 }));
+      server.position.set(3.4, 0.9, 0);
+      g3.add(server);
+      server.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.8, 1.8, 1.8)), new THREE.LineBasicMaterial({ color: GOLD })));
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.06, 8, 48), mat(GOLD, GOLD, 1.5));
+      ring.position.set(3.4, 2.4, 0);
+      ring.rotation.x = Math.PI / 2;
+      g3.add(ring);
+      const C = 6, cust = [];
+      const bodyGeo = new THREE.CylinderGeometry(0.26, 0.32, 0.8, 20);
+      const headGeo = new THREE.SphereGeometry(0.24, 20, 14);
+      const serveT = (c) => 24 + c * 0.9;
+      for (let c = 0; c < C; c++) {
+        const p = new THREE.Group();
+        const col = c % 2 ? TEAL : "#7aa2ff";
+        const b = new THREE.Mesh(bodyGeo, mat(col, col, 0.25)); b.position.y = 0.4;
+        const h = new THREE.Mesh(headGeo, mat("#f3f5fb")); h.position.y = 1.05;
+        p.add(b, h);
+        g3.add(p);
+        cust.push(p);
+      }
+      function upd3(t) {
+        let served = 0;
+        cust.forEach((p, c) => {
+          const arrive = 21.2 + c * 0.55;
+          let shift = 0;
+          for (let j = 0; j < c; j++) shift += eInOut(prog(t, serveT(j), 0.4));
+          const slot = 1.6 - c * 1.05 + shift * 1.05;
+          const pa = eOut(prog(t, arrive, 0.8));
+          const ps = eInOut(prog(t, serveT(c), 0.4));
+          const pe = eInOut(prog(t, serveT(c) + 0.45, 0.45));
+          let x = lerp(-9, slot, pa);
+          x = lerp(x, 3.4, ps);
+          x = lerp(x, 8.5, pe);
+          const walking = (pa > 0 && pa < 1) || (ps > 0 && ps < 1) || (pe > 0 && pe < 1);
+          p.position.set(x, walking ? Math.abs(Math.sin(t * 14 + c)) * 0.12 : 0, 0);
+          p.scale.setScalar(1 - 0.5 * ps * (1 - pe));
+          p.visible = t >= arrive && pe < 1;
+          if (t >= serveT(c) + 0.4) served++;
+        });
+        const pulse = cust.reduce((acc, _, c) => acc + Math.exp(-Math.pow((t - serveT(c) - 0.4) * 5, 2)), 0);
+        server.material.emissiveIntensity = 0.15 + pulse * 1.2;
+        ring.rotation.z = t * 2;
+        ring.position.y = 2.4 + Math.sin(t * 3) * 0.1;
+        const a = -0.35 + prog(t, 20, 10) * 0.55;
+        setCam(Math.sin(a) * 10 - 0.5, 6.5, Math.cos(a) * 10, -0.5, -0.5, 0);
+        document.getElementById("q-count").textContent = served;
+      }
+
+      /* ---------- Escena 4: SIMULA 67 ---------- */
+      const g4 = addGroup();
+      const codeLines = [
+        [["CLASS ", GOLD], ["Cliente", TEAL], [";", "#f3f5fb"]],
+        [["BEGIN", GOLD]],
+        [["  REAL ", GOLD], ["llegada;", "#f3f5fb"]],
+        [["  Hold", TEAL], ["(servicio);", "#f3f5fb"]],
+        [["END;", GOLD]],
+      ];
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.6, 0.12), mat("#070b17", "#000000", 0, { metalness: 0.6 }));
+      g4.add(panel);
+      panel.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(5.6, 3.6, 0.12)), new THREE.LineBasicMaterial({ color: "#3a4a90" })));
+      const lineMeshes = codeLines.map((ln, i) => {
+        const tex = textTex([ln], { w: 1024, h: 128, bg: "#070b17", align: "left", font: "bold 72px 'DejaVu Sans Mono', monospace", pad: 30, lineH: 68 });
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.65), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+        m.position.set(0, 1.3 - i * 0.66, 0.07);
+        panel.add(m);
+        return m;
+      });
+      const objTex = textTex(["objeto"], { w: 256, h: 256, bg: GOLD, color: "#0b1020", font: "bold 56px 'DejaVu Sans', sans-serif", border: "#fff2b8" });
+      const objs = [0, 1, 2].map(() => {
+        const plain = mat(GOLD, GOLD, 0.15);
+        const face = new THREE.MeshStandardMaterial({ map: objTex, roughness: 0.35, emissive: GOLD, emissiveIntensity: 0.15 });
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), [plain, plain, plain, plain, face, plain]);
+        g4.add(m);
+        return m;
+      });
+      function upd4(t) {
+        lineMeshes.forEach((m, i) => {
+          const p = eOut(prog(t, 31.2 + i * 0.6, 0.4));
+          m.material.opacity = p;
+          m.position.x = (1 - p) * -0.6;
+        });
+        panel.rotation.y = -0.35 + Math.sin(t * 0.4) * 0.08;
+        panel.rotation.x = -0.12;
+        panel.position.set(0, 0.6, 0);
+        objs.forEach((m, i) => {
+          const t0 = 35 + i * 0.7;
+          const p = eBack(prog(t, t0, 0.9));
+          m.visible = t >= t0;
+          const ang = (i / 3) * Math.PI * 2 + t * 0.9;
+          m.position.set(lerp(0, Math.cos(ang) * 3.1, p), lerp(0.6, -0.9 + Math.sin(ang * 1.3) * 0.3, p), lerp(0, 2.4 + Math.sin(ang) * 1.6, p));
+          m.scale.setScalar(Math.max(0.001, p));
+          m.rotation.set(Math.sin(t * 1.2 + i) * 0.25, Math.sin(t * 0.9 + i * 2) * 0.6, 0);
+        });
+        const k = eInOut(prog(t, 30, 10));
+        setCam(lerp(2.4, -1.8, k), lerp(1.8, 2.8, k), lerp(10.5, 11.5, k), 0, -0.2, 0);
+      }
+
+      /* ---------- Escena 5: Mersenne Twister (hélice de bits) ---------- */
+      const g5 = addGroup();
+      const bitMat = {
+        1: new THREE.MeshStandardMaterial({ map: textTex(["1"], { bg: "#0f3b44", color: "#bff5ef", border: TEAL }), emissive: TEAL, emissiveIntensity: 0.35, roughness: 0.4 }),
+        0: new THREE.MeshStandardMaterial({ map: textTex(["0"], { bg: "#141c3a", color: "#8b95b5", border: "#3a4a90" }), roughness: 0.5 }),
+      };
+      const bitCubes = [];
+      const bGeo = new THREE.BoxGeometry(0.55, 0.55, 0.55);
+      for (let i = 0; i < 18; i++) {
+        for (let s = 0; s < 2; s++) {
+          const m = new THREE.Mesh(bGeo, bitMat[0]);
+          const a = i * 0.42 + s * Math.PI;
+          m.position.set(Math.cos(a) * 1.7, i * 0.32 - 8, Math.sin(a) * 1.7);
+          m.rotation.y = -a;
+          g5.add(m);
+          bitCubes.push({ m, i, s });
+        }
+        if (i % 2 === 0) {
+          const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.4, 6), mat("#3a4a90", TEAL, 0.3));
+          rung.position.set(0, i * 0.32 - 8, 0);
+          rung.rotation.set(0, -i * 0.42, Math.PI / 2);
+          g5.add(rung);
+        }
+      }
+      function upd5(t) {
+        const frame = Math.floor((t - 40) * 3);
+        bitCubes.forEach(({ m, i, s }) => {
+          const p = eBack(prog(t, 40.6 + i * 0.03, 0.4));
+          m.scale.setScalar(Math.max(0.001, p));
+          m.material = bitMat[hash(i * 2 + s, frame) > 0.5 ? 1 : 0];
+        });
+        g5.rotation.y = t * 0.6;
+        const k = eInOut(prog(t, 40, 10));
+        setCam(0.5, lerp(-4.5, -1.5, k), 13, 0, lerp(-6.5, -4.5, k), 0);
+      }
+
+      /* ---------- Escena 6: Hoy, Python ---------- */
+      const g6 = addGroup();
+      const topics = ["Aleatorios", "K–S", "Transf. inversa", "Poisson", "Exponencial", "LogNormal"];
+      const chips = topics.map((tp) => {
+        const tex = textTex([tp], { w: 512, h: 160, bg: "#0f2a33", color: "#f3f5fb", border: TEAL, bw: 8, font: "bold 60px 'DejaVu Sans', sans-serif" });
+        const side = mat("#0f2a33");
+        const m = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.75, 0.08), [
+          side, side, side, side,
+          new THREE.MeshStandardMaterial({ map: tex, emissive: TEAL, emissiveIntensity: 0.12 }), side,
+        ]);
+        g6.add(m);
+        return m;
+      });
+      const bars = [];
+      for (let i = 0; i < 9; i++) {
+        const hgt = 3.2 * Math.exp(-i * 0.42);
+        const col = new THREE.Color(GOLD).lerp(new THREE.Color(TEAL), i / 8);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.34, 1, 0.34), mat(col, col, 0.35));
+        g6.add(m);
+        bars.push({ m, hgt, i });
+      }
+      function upd6(t) {
+        chips.forEach((m, i) => {
+          const p = eBack(prog(t, 51 + i * 0.3, 0.6));
+          const a = (i / 6) * Math.PI * 2 + t * 0.45;
+          m.position.set(Math.sin(a) * 3.6, 0.9 + Math.sin(a * 2) * 0.2, Math.cos(a) * 3.6);
+          m.rotation.y = a;
+          m.scale.setScalar(Math.max(0.001, p));
+        });
+        bars.forEach(({ m, hgt, i }) => {
+          const p = eOut(prog(t, 52.5 + i * 0.12, 0.8));
+          const h = Math.max(0.001, hgt * p);
+          m.scale.y = h;
+          m.position.set((i - 4) * 0.42, -1.2 + h / 2, 0);
+        });
+        const a = t * 0.12;
+        setCam(Math.sin(a) * 11, lerp(4.5, 3.2, eInOut(prog(t, 50, 10))), Math.cos(a) * 11, 0, 0.2, 0);
+      }
+
+      const updaters = [upd1, upd2, upd3, upd4, upd5, upd6];
+      function draw(t) {
+        const si = clamp(Math.floor(t / 10), 0, 5);
+        groups.forEach((g, i) => (g.visible = i === si));
+        updaters[si](t);
+        renderer.render(scene, camera);
+      }
+
+      /* ================= capa HTML ================= */
+      // Reloj maestro: cada búsqueda de la línea de tiempo redibuja el 3D
+      const clock = { t: 0 };
+      tl.to(clock, { t: 60, duration: 60, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+
+      // Línea de tiempo con fechas clave
       const years = ["1946", "1949", "1961", "1967", "1997", "Hoy"];
       const tlEl = document.getElementById("tl");
       years.forEach((y, i) => {
@@ -277,173 +562,78 @@
         tl.to(`#dot${i}`, { borderColor: "#ffcc33", backgroundColor: "#ffcc33", scale: 1.35, duration: 0.4, ease: "back.out(3)" }, t + 0.2);
         tl.to(`#dot${i}`, { scale: 1, duration: 0.3 }, t + 0.6);
         tl.to(`#ty${i}`, { color: "#f3f5fb", scale: 1.25, duration: 0.4 }, t + 0.2);
-        if (i < 5) tl.to(`#ty${i}`, { color: "#8b95b5", scale: 1, duration: 0.4 }, t + 9.6);
+        if (i < 5) tl.to(`#ty${i}`, { color: "#a3acc9", scale: 1, duration: 0.4 }, t + 9.6);
         if (i < 5) tl.to("#tl-fill", { scaleX: (i + 1) / 5, duration: 1, ease: "power2.inOut" }, t + 9.2);
       });
 
-      /* ---------------- Entrada/salida común de escenas ---------------- */
+      // Entradas y salidas de texto + fundido entre escenas 3D
       for (let i = 1; i <= 6; i++) {
         const s = `#s${i}`, t = (i - 1) * 10;
-        if (i > 1) tl.fromTo(`${s} .year`, { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power4.out" }, t + 0.1);
-        if (i > 1) tl.fromTo(`${s} .title`, { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, t + 0.35);
+        if (i > 1) {
+          tl.fromTo(`${s} .year`, { y: 80, opacity: 0, rotationX: -70 }, { y: 0, opacity: 1, rotationX: 0, duration: 0.8, ease: "power4.out" }, t + 0.1);
+          tl.fromTo(`${s} .title`, { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, t + 0.35);
+        }
         tl.fromTo(`${s} .sub`, { opacity: 0 }, { opacity: 1, duration: 0.6 }, t + 0.7);
-        tl.fromTo(`${s} .stage`, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t + 0.9);
-        if (i < 6) tl.to(s, { opacity: 0, x: -60, duration: 0.45, ease: "power2.in" }, t + 9.55);
+        if (i < 6) {
+          tl.to(s, { opacity: 0, x: -60, duration: 0.45, ease: "power2.in" }, t + 9.55);
+          tl.to("#fade", { opacity: 1, duration: 0.35, ease: "power2.in" }, t + 9.65);
+          tl.to("#fade", { opacity: 0, duration: 0.5, ease: "power2.out" }, t + 10.0);
+        }
       }
-
-      /* ---------------- Escena 1: Monte Carlo ---------------- */
-      const box = document.getElementById("mc-box");
-      const N = 160;
-      let inside = 0;
-      const piVals = [];
-      for (let k = 0; k < N; k++) {
-        const x = rnd(), y = rnd();
-        const isIn = x * x + y * y <= 1;
-        if (isIn) inside++;
-        piVals.push((4 * inside) / (k + 1));
-        const d = document.createElement("div");
-        d.className = "mc-dot " + (isIn ? "in" : "out");
-        d.style.left = x * 280 + "px";
-        d.style.top = (1 - y) * 280 + "px";
-        d.style.opacity = 0;
-        box.appendChild(d);
-        tl.fromTo(d, { opacity: 0, scale: 2.5 }, { opacity: 1, scale: 1, duration: 0.15 }, 1.4 + k * 0.045);
-      }
+      tl.fromTo("#s1 .data", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 1.2);
+      tl.fromTo("#s2 .data", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 11.2);
+      tl.fromTo("#s3 .data", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 21.2);
       const piObj = { k: 0 };
       tl.to(piObj, {
         k: N - 1, duration: N * 0.045, ease: "none",
         onUpdate: () => { document.getElementById("mc-val").textContent = piVals[Math.round(piObj.k)].toFixed(3); },
       }, 1.4);
-
-      /* ---------------- Escena 2: Cuadrados medios ---------------- */
-      const ms = document.getElementById("ms-stage");
-      let x0 = 5735;
-      for (let r = 0; r < 4; r++) {
-        const sq = String(x0 * x0).padStart(8, "0");
-        const mid = sq.slice(2, 6);
-        const row = document.createElement("div");
-        row.className = "ms-row";
-        row.id = "ms" + r;
-        row.innerHTML = `<span class="seed">${String(x0).padStart(4, "0")}</span><span class="arrow">²→</span><span class="sq">${sq.slice(0, 2)}<em>${mid}</em>${sq.slice(6)}</span>`;
-        ms.appendChild(row);
-        tl.fromTo(row, { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 11.5 + r * 1.6);
-        tl.fromTo(`#ms${r} em`, { color: "#8b95b5" }, { color: "#4fd1c5", duration: 0.4 }, 12.1 + r * 1.6);
-        x0 = parseInt(mid, 10);
-      }
-
-      /* ---------------- Escena 3: Cola ---------------- */
-      const qs = document.getElementById("q-stage");
-      const C = 6;
-      const counter = { n: 0 };
-      for (let c = 0; c < C; c++) {
-        const el = document.createElement("div");
-        el.className = "q-cust";
-        el.style.left = "-100px";
-        qs.appendChild(el);
-        const arrive = 21.2 + c * 0.55;
-        const slot = 400 - c * 75;          // posición en la fila
-        tl.fromTo(el, { x: 0, opacity: 0 }, { x: slot + 100, opacity: 1, duration: 0.6, ease: "power2.out" }, arrive);
-        // Atención en orden: cada cliente avanza al servidor y se va
-        const serve = 24 + c * 0.9;
-        tl.to(el, { x: 655, duration: 0.35, ease: "power2.inOut" }, serve);
-        tl.to(el, { x: 820, opacity: 0, duration: 0.35, ease: "power2.in" }, serve + 0.45);
-      }
-      tl.to(counter, {
-        n: C, duration: C * 0.9, ease: "none",
-        onUpdate: () => { document.getElementById("q-count").textContent = Math.floor(counter.n); },
-      }, 24.8);
-
-      /* ---------------- Escena 4: código ---------------- */
-      document.querySelectorAll("#s4 .ln").forEach((ln, i) => {
-        tl.fromTo(ln, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, 31.4 + i * 0.75);
-      });
-
-      /* ---------------- Escena 5: bits ---------------- */
-      const bits = document.getElementById("bits");
-      const bitEls = [];
-      for (let b = 0; b < 48; b++) {
-        const el = document.createElement("div");
-        el.className = "bit";
-        el.textContent = rnd() > 0.5 ? "1" : "0";
-        bits.appendChild(el);
-        bitEls.push(el);
-      }
-      for (let f = 0; f < 14; f++) {
-        bitEls.forEach((el, b) => {
-          if (rnd() > 0.7) {
-            const v = rnd() > 0.5;
-            tl.set(el, { textContent: v ? "1" : "0", color: v ? "#4fd1c5" : "#68729a" }, 41 + f * 0.4);
-          }
-        });
-      }
-      tl.fromTo("#s5 .period", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: "back.out(2)" }, 43.5);
-
-      /* ---------------- Escena 6: chips + CTA ---------------- */
-      document.querySelectorAll("#s6 .chip").forEach((ch, i) => {
-        tl.fromTo(ch, { opacity: 0, y: 30, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(2)" }, 51.2 + i * 0.35);
-      });
-      tl.fromTo("#s6 .cta", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2.5)" }, 55.5);
-      tl.to("#s6 .cta", { scale: 1.08, duration: 0.5, yoyo: true, repeat: 5, ease: "sine.inOut" }, 56.2);
+      tl.fromTo("#period", { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: "back.out(2)" }, 44);
+      tl.fromTo("#cta", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2.5)" }, 55.4);
+      tl.to("#cta", { scale: 1.08, duration: 0.5, yoyo: true, repeat: 5, ease: "sine.inOut" }, 56.1);
       tl.to("#root", { opacity: 0, duration: 0.6 }, 59.4);
 
-      /* ---------------- Subtítulos animados palabra a palabra ---------------- */
-      // [inicio, fin, texto]; las palabras entre *asteriscos* se resaltan.
-      const captions = [
-        [0.60, 3.55, "En *1946,* Ulam y von Neumann"],
-        [3.55, 6.50, "usan el azar para la física nuclear:"],
-        [6.50, 9.45, "nace *Monte Carlo.*"],
-        [10.60, 13.55, "En *1949,* von Neumann inventa"],
-        [13.55, 16.50, "los *cuadrados medios:* números"],
-        [16.50, 19.45, "que *parecen* aleatorios."],
-        [20.60, 23.55, "En *1961,* Geoffrey Gordon"],
-        [23.55, 26.50, "crea *GPSS* en IBM"],
-        [26.50, 29.45, "para simular *colas* y servidores."],
-        [30.60, 33.55, "En *1967,* Dahl y Nygaard"],
-        [33.55, 36.50, "lanzan *SIMULA 67:*"],
-        [36.50, 39.45, "el primer lenguaje con *objetos.*"],
-        [40.60, 43.55, "En *1997,* Matsumoto y Nishimura"],
-        [43.55, 46.50, "crean el *Mersenne Twister,*"],
-        [46.50, 49.45, "con periodo *2^19937 − 1.*"],
-        [50.60, 53.55, "Hoy simulamos *Poisson,*"],
-        [53.55, 56.50, "exponenciales y colas en *Python.*"],
-        [56.50, 59.45, "Tu turno: *¡simula* el mundo!"],
+      // Subtítulos animados palabra a palabra; *palabra* = resaltada
+      const caps = [
+        ["En *1946,* Ulam y von Neumann", "usan el azar para la física nuclear:", "nace *Monte Carlo.*"],
+        ["En *1949,* von Neumann inventa", "los *cuadrados medios:* números", "que *parecen* aleatorios."],
+        ["En *1961,* Geoffrey Gordon", "crea *GPSS* en IBM", "para simular *colas* y servidores."],
+        ["En *1967,* Dahl y Nygaard", "lanzan *SIMULA 67:*", "el primer lenguaje con *objetos.*"],
+        ["En *1997,* Matsumoto y Nishimura", "crean el *Mersenne Twister,*", "con periodo *2^19937 − 1.*"],
+        ["Hoy simulamos *Poisson,*", "exponenciales y colas en *Python.*", "Tu turno: *¡simula* el mundo!"],
       ];
       const capRoot = document.getElementById("captions");
-      captions.forEach(([start, end, text], ci) => {
+      caps.forEach((sc, si) => sc.forEach((text, j) => {
+        const start = si * 10 + 0.6 + j * 2.95, end = start + 2.95;
         const wrap = document.createElement("div");
         wrap.className = "clip cap";
-        wrap.id = "cap" + ci;
-        wrap.dataset.start = start;
+        wrap.dataset.start = start.toFixed(2);
         wrap.dataset.duration = (end - start).toFixed(2);
         wrap.dataset.trackIndex = "2";
         const boxEl = document.createElement("div");
         boxEl.className = "cap-box";
-        const words = text.split(" ");
-        words.forEach((w) => {
+        text.split(" ").forEach((w) => {
           const s = document.createElement("span");
-          const key = w.startsWith("*") || w.endsWith("*");
-          s.className = "w" + (key ? " key" : "");
+          s.className = "w" + (w.includes("*") ? " key" : "");
           s.textContent = w.replace(/\*/g, "");
           boxEl.appendChild(s);
           boxEl.appendChild(document.createTextNode(" "));
         });
         wrap.appendChild(boxEl);
         capRoot.appendChild(wrap);
-
         const spans = boxEl.querySelectorAll(".w");
         const step = Math.min(0.28, (end - start - 1.2) / spans.length);
         spans.forEach((s, wi) => {
           const t = start + wi * step;
           tl.fromTo(s, { opacity: 0, y: 26, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: "back.out(2.5)" }, t);
-          if (s.classList.contains("key")) {
-            tl.to(s, { scale: 1.15, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" }, t + 0.22);
-          }
+          if (s.classList.contains("key")) tl.to(s, { scale: 1.15, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" }, t + 0.22);
         });
         tl.to(spans, { opacity: 0, y: -16, duration: 0.2, stagger: 0.01 }, end - 0.3);
-      });
+      }));
 
       window.__timelines = window.__timelines || {};
       window.__timelines["main"] = tl;
+      draw(0);
       tl.seek(0);
     </script>
   </body>
