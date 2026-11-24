@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=block"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b1020;
+        --ground-2: #121a33;
+        --ink: #f3f5fb;
+        --muted: #8b95b5;
+        --accent: #ffcc33;
+        --accent-2: #4fd1c5;
+        --hot: #ff6b6b;
+        --font-display: "Space Grotesk", "DejaVu Sans", sans-serif;
+        --font-mono: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px; height: 1920px; overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative; width: 1080px; height: 1920px; overflow: hidden;
+        font-family: var(--font-display); color: var(--ink);
+        background: radial-gradient(1200px 900px at 50% 45%, var(--ground-2), var(--ground));
+      }
+      .clip { position: absolute; inset: 0; }
+
+      /* Zona segura 9:16 (TikTok/Reels/Shorts): y 288–1248, x 120–888 (780 bajo y=840) */
+      /* ---------- Cabecera + línea de tiempo persistente ---------- */
+      #header { z-index: 5; }
+      .kicker {
+        position: absolute; top: 296px; left: 120px; width: 768px;
+        font-family: var(--font-mono); font-size: 28px; letter-spacing: 0.16em;
+        color: var(--muted); text-transform: uppercase;
+      }
+      .kicker b { color: var(--accent); font-weight: 700; }
+      .tl { position: absolute; top: 350px; left: 180px; width: 640px; height: 100px; }
+      .tl-track, .tl-fill { position: absolute; top: 18px; left: 0; height: 6px; border-radius: 3px; }
+      .tl-track { width: 640px; background: #2a3354; }
+      .tl-fill { width: 640px; background: var(--accent); transform-origin: left center; transform: scaleX(0); }
+      .tl-node { position: absolute; top: 0; width: 0; }
+      .tl-dot {
+        position: absolute; left: -14px; top: 7px; width: 28px; height: 28px; border-radius: 50%;
+        background: var(--ground); border: 5px solid #2a3354;
+      }
+      .tl-year {
+        position: absolute; top: 48px; left: -55px; width: 110px; text-align: center;
+        font-family: var(--font-mono); font-size: 28px; color: var(--muted);
+      }
+
+      /* ---------- Escenas ---------- */
+      .scene { z-index: 2; }
+      .year {
+        position: absolute; top: 470px; left: 120px;
+        font-size: 160px; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
+        color: var(--accent);
+      }
+      .title {
+        position: absolute; top: 640px; left: 120px; width: 768px;
+        font-size: 60px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em;
+      }
+      .sub {
+        position: absolute; top: 718px; left: 120px; width: 660px;
+        font-size: 31px; color: var(--muted); line-height: 1.25;
+      }
+      .stage { position: absolute; left: 120px; width: 660px; top: 800px; height: 290px; }
+
+      /* Escena 1 — Monte Carlo */
+      .mc-box {
+        position: absolute; left: 0; top: 0; width: 280px; height: 280px;
+        border: 4px solid #3a4570; overflow: hidden;
+      }
+      .mc-arc {
+        position: absolute; left: -280px; bottom: -280px; width: 560px; height: 560px;
+        border-radius: 50%; border: 4px solid var(--accent-2);
+      }
+      .mc-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; margin: -5px 0 0 -5px; }
+      .mc-dot.in { background: var(--accent-2); }
+      .mc-dot.out { background: var(--hot); }
+      .mc-pi {
+        position: absolute; left: 320px; top: 90px; width: 340px;
+        font-family: var(--font-mono); font-size: 50px; color: var(--ink);
+      }
+      .mc-pi b { color: var(--accent); }
+
+      /* Escena 2 — Cuadrados medios */
+      .ms-row {
+        display: flex; align-items: baseline; gap: 22px; margin-bottom: 16px;
+        font-family: var(--font-mono); font-size: 40px;
+      }
+      .ms-row .seed { color: var(--accent); width: 110px; }
+      .ms-row .arrow { color: var(--muted); }
+      .ms-row .sq { color: var(--muted); }
+      .ms-row .sq em { font-style: normal; color: var(--accent-2); font-weight: 700; }
+
+      /* Escena 3 — Colas GPSS */
+      .q-server {
+        position: absolute; left: 500px; top: 20px; width: 160px; height: 160px; border-radius: 24px;
+        border: 5px solid var(--accent); display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-mono); font-size: 28px; color: var(--accent);
+      }
+      .q-cust { position: absolute; top: 75px; width: 50px; height: 50px; border-radius: 50%; background: var(--accent-2); }
+      .q-label { position: absolute; left: 0; top: 220px; font-family: var(--font-mono); font-size: 30px; color: var(--muted); }
+      .q-label b { color: var(--ink); }
+
+      /* Escena 4 — SIMULA 67 */
+      .code {
+        position: absolute; inset: 0; border-radius: 22px; padding: 18px 30px;
+        background: #070b17; border: 3px solid #2a3354;
+        font-family: var(--font-mono); font-size: 29px; line-height: 1.45;
+      }
+      .code .ln { opacity: 0; white-space: pre; }
+      .kw { color: var(--accent); }
+      .id { color: var(--accent-2); }
+      .cm { color: var(--muted); }
+
+      /* Escena 5 — Mersenne Twister */
+      .bits {
+        display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px 8px; width: 660px;
+        font-family: var(--font-mono); font-size: 30px; text-align: center;
+      }
+      .bit { color: #68729a; }
+      .period {
+        position: absolute; left: 0; width: 660px; top: 185px; text-align: center;
+        font-family: var(--font-mono); font-size: 66px; font-weight: 700; color: var(--accent);
+      }
+      .period sup { font-size: 36px; }
+
+      /* Escena 6 — Hoy */
+      .chips { display: flex; flex-wrap: wrap; gap: 12px; }
+      .chip {
+        padding: 8px 20px; border-radius: 999px; border: 3px solid var(--accent-2);
+        font-size: 28px; font-weight: 500; color: var(--ink); background: rgba(79, 209, 197, 0.08);
+      }
+      .cta {
+        position: absolute; left: 0; width: 660px; top: 190px; text-align: center;
+        font-size: 76px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em;
+      }
+
+      /* ---------- Subtítulos animados ---------- */
+      .cap { z-index: 6; }
+      .cap-box {
+        position: absolute; left: 120px; width: 660px; top: 1110px;
+        text-align: center; font-size: 46px; font-weight: 700; line-height: 1.2;
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+      }
+      .w { display: inline-block; margin: 0 0.1em; opacity: 0; color: var(--ink); }
+      .w.key { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="60"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- Cabecera persistente con línea de tiempo de fechas clave -->
+      <div id="header" class="clip" data-start="0" data-duration="60" data-track-index="0">
+        <div class="kicker">Historia de la <b>simulación</b></div>
+        <div class="tl" id="tl">
+          <div class="tl-track"></div>
+          <div class="tl-fill" id="tl-fill"></div>
+        </div>
+      </div>
+
+      <!-- Escena 1 -->
+      <div id="s1" class="clip scene" data-start="0" data-duration="10" data-track-index="1">
+        <div class="year">1946</div>
+        <div class="title">Método Monte Carlo</div>
+        <div class="sub">Lanzar puntos al azar para estimar π</div>
+        <div class="stage">
+          <div class="mc-box" id="mc-box"><div class="mc-arc"></div></div>
+          <div class="mc-pi">π ≈ <b id="mc-val">0.000</b></div>
+        </div>
+      </div>
+
+      <!-- Escena 2 -->
+      <div id="s2" class="clip scene" data-start="10" data-duration="10" data-track-index="1">
+        <div class="year">1949</div>
+        <div class="title">Cuadrados medios</div>
+        <div class="sub">Eleva al cuadrado y toma el centro</div>
+        <div class="stage" id="ms-stage"></div>
+      </div>
+
+      <!-- Escena 3 -->
+      <div id="s3" class="clip scene" data-start="20" data-duration="10" data-track-index="1">
+        <div class="year">1961</div>
+        <div class="title">GPSS, de IBM</div>
+        <div class="sub">Colas: llegadas, esperas y servicio</div>
+        <div class="stage" id="q-stage">
+          <div class="q-server">SERVIDOR</div>
+          <div class="q-label">Clientes atendidos: <b id="q-count">0</b></div>
+        </div>
+      </div>
+
+      <!-- Escena 4 -->
+      <div id="s4" class="clip scene" data-start="30" data-duration="10" data-track-index="1">
+        <div class="year">1967</div>
+        <div class="title">SIMULA 67</div>
+        <div class="sub">El primer lenguaje con clases y objetos</div>
+        <div class="stage">
+          <div class="code">
+            <div class="ln"><span class="kw">CLASS</span> <span class="id">Cliente</span>;</div>
+            <div class="ln"><span class="kw">BEGIN</span></div>
+            <div class="ln">  <span class="kw">REAL</span> llegada;</div>
+            <div class="ln">  <span class="id">Hold</span>(servicio);</div>
+            <div class="ln"><span class="kw">END</span>;</div>
+            <div class="ln"><span class="cm">! nace la POO</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Escena 5 -->
+      <div id="s5" class="clip scene" data-start="40" data-duration="10" data-track-index="1">
+        <div class="year">1997</div>
+        <div class="title">Mersenne Twister</div>
+        <div class="sub">El generador aleatorio más usado</div>
+        <div class="stage">
+          <div class="bits" id="bits"></div>
+          <div class="period">2<sup>19937</sup> − 1</div>
+        </div>
+      </div>
+
+      <!-- Escena 6 -->
+      <div id="s6" class="clip scene" data-start="50" data-duration="10" data-track-index="1">
+        <div class="year">Hoy</div>
+        <div class="title">Simulación en Python</div>
+        <div class="sub">Lo que practicas en este curso</div>
+        <div class="stage">
+          <div class="chips">
+            <div class="chip">Números aleatorios</div>
+            <div class="chip">Kolmogorov–Smirnov</div>
+            <div class="chip">Transformada inversa</div>
+            <div class="chip">Poisson</div>
+            <div class="chip">Exponencial</div>
+            <div class="chip">LogNormal</div>
+          </div>
+          <div class="cta">¡Tu turno!</div>
+        </div>
+      </div>
+
+      <!-- Subtítulos: el script crea un bloque .cap por frase -->
+      <div id="captions"></div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const root = document.getElementById("root");
+
+      // Generador congruencial lineal: determinista (nada de Math.random).
+      let seed = 12345;
+      const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+
+      /* ---------------- Línea de tiempo con fechas clave ---------------- */
+      const years = ["1946", "1949", "1961", "1967", "1997", "Hoy"];
+      const tlEl = document.getElementById("tl");
+      years.forEach((y, i) => {
+        const node = document.createElement("div");
+        node.className = "tl-node";
+        node.style.left = (i * 640) / 5 + "px";
+        node.innerHTML = `<div class="tl-dot" id="dot${i}"></div><div class="tl-year" id="ty${i}">${y}</div>`;
+        tlEl.appendChild(node);
+      });
+      years.forEach((_, i) => {
+        const t = i * 10;
+        tl.to(`#dot${i}`, { borderColor: "#ffcc33", backgroundColor: "#ffcc33", scale: 1.35, duration: 0.4, ease: "back.out(3)" }, t + 0.2);
+        tl.to(`#dot${i}`, { scale: 1, duration: 0.3 }, t + 0.6);
+        tl.to(`#ty${i}`, { color: "#f3f5fb", scale: 1.25, duration: 0.4 }, t + 0.2);
+        if (i < 5) tl.to(`#ty${i}`, { color: "#8b95b5", scale: 1, duration: 0.4 }, t + 9.6);
+        if (i < 5) tl.to("#tl-fill", { scaleX: (i + 1) / 5, duration: 1, ease: "power2.inOut" }, t + 9.2);
+      });
+
+      /* ---------------- Entrada/salida común de escenas ---------------- */
+      for (let i = 1; i <= 6; i++) {
+        const s = `#s${i}`, t = (i - 1) * 10;
+        if (i > 1) tl.fromTo(`${s} .year`, { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power4.out" }, t + 0.1);
+        if (i > 1) tl.fromTo(`${s} .title`, { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, t + 0.35);
+        tl.fromTo(`${s} .sub`, { opacity: 0 }, { opacity: 1, duration: 0.6 }, t + 0.7);
+        tl.fromTo(`${s} .stage`, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t + 0.9);
+        if (i < 6) tl.to(s, { opacity: 0, x: -60, duration: 0.45, ease: "power2.in" }, t + 9.55);
+      }
+
+      /* ---------------- Escena 1: Monte Carlo ---------------- */
+      const box = document.getElementById("mc-box");
+      const N = 160;
+      let inside = 0;
+      const piVals = [];
+      for (let k = 0; k < N; k++) {
+        const x = rnd(), y = rnd();
+        const isIn = x * x + y * y <= 1;
+        if (isIn) inside++;
+        piVals.push((4 * inside) / (k + 1));
+        const d = document.createElement("div");
+        d.className = "mc-dot " + (isIn ? "in" : "out");
+        d.style.left = x * 280 + "px";
+        d.style.top = (1 - y) * 280 + "px";
+        d.style.opacity = 0;
+        box.appendChild(d);
+        tl.fromTo(d, { opacity: 0, scale: 2.5 }, { opacity: 1, scale: 1, duration: 0.15 }, 1.4 + k * 0.045);
+      }
+      const piObj = { k: 0 };
+      tl.to(piObj, {
+        k: N - 1, duration: N * 0.045, ease: "none",
+        onUpdate: () => { document.getElementById("mc-val").textContent = piVals[Math.round(piObj.k)].toFixed(3); },
+      }, 1.4);
+
+      /* ---------------- Escena 2: Cuadrados medios ---------------- */
+      const ms = document.getElementById("ms-stage");
+      let x0 = 5735;
+      for (let r = 0; r < 4; r++) {
+        const sq = String(x0 * x0).padStart(8, "0");
+        const mid = sq.slice(2, 6);
+        const row = document.createElement("div");
+        row.className = "ms-row";
+        row.id = "ms" + r;
+        row.innerHTML = `<span class="seed">${String(x0).padStart(4, "0")}</span><span class="arrow">²→</span><span class="sq">${sq.slice(0, 2)}<em>${mid}</em>${sq.slice(6)}</span>`;
+        ms.appendChild(row);
+        tl.fromTo(row, { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 11.5 + r * 1.6);
+        tl.fromTo(`#ms${r} em`, { color: "#8b95b5" }, { color: "#4fd1c5", duration: 0.4 }, 12.1 + r * 1.6);
+        x0 = parseInt(mid, 10);
+      }
+
+      /* ---------------- Escena 3: Cola ---------------- */
+      const qs = document.getElementById("q-stage");
+      const C = 6;
+      const counter = { n: 0 };
+      for (let c = 0; c < C; c++) {
+        const el = document.createElement("div");
+        el.className = "q-cust";
+        el.style.left = "-100px";
+        qs.appendChild(el);
+        const arrive = 21.2 + c * 0.55;
+        const slot = 400 - c * 75;          // posición en la fila
+        tl.fromTo(el, { x: 0, opacity: 0 }, { x: slot + 100, opacity: 1, duration: 0.6, ease: "power2.out" }, arrive);
+        // Atención en orden: cada cliente avanza al servidor y se va
+        const serve = 24 + c * 0.9;
+        tl.to(el, { x: 655, duration: 0.35, ease: "power2.inOut" }, serve);
+        tl.to(el, { x: 820, opacity: 0, duration: 0.35, ease: "power2.in" }, serve + 0.45);
+      }
+      tl.to(counter, {
+        n: C, duration: C * 0.9, ease: "none",
+        onUpdate: () => { document.getElementById("q-count").textContent = Math.floor(counter.n); },
+      }, 24.8);
+
+      /* ---------------- Escena 4: código ---------------- */
+      document.querySelectorAll("#s4 .ln").forEach((ln, i) => {
+        tl.fromTo(ln, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, 31.4 + i * 0.75);
+      });
+
+      /* ---------------- Escena 5: bits ---------------- */
+      const bits = document.getElementById("bits");
+      const bitEls = [];
+      for (let b = 0; b < 48; b++) {
+        const el = document.createElement("div");
+        el.className = "bit";
+        el.textContent = rnd() > 0.5 ? "1" : "0";
+        bits.appendChild(el);
+        bitEls.push(el);
+      }
+      for (let f = 0; f < 14; f++) {
+        bitEls.forEach((el, b) => {
+          if (rnd() > 0.7) {
+            const v = rnd() > 0.5;
+            tl.set(el, { textContent: v ? "1" : "0", color: v ? "#4fd1c5" : "#68729a" }, 41 + f * 0.4);
+          }
+        });
+      }
+      tl.fromTo("#s5 .period", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: "back.out(2)" }, 43.5);
+
+      /* ---------------- Escena 6: chips + CTA ---------------- */
+      document.querySelectorAll("#s6 .chip").forEach((ch, i) => {
+        tl.fromTo(ch, { opacity: 0, y: 30, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(2)" }, 51.2 + i * 0.35);
+      });
+      tl.fromTo("#s6 .cta", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2.5)" }, 55.5);
+      tl.to("#s6 .cta", { scale: 1.08, duration: 0.5, yoyo: true, repeat: 5, ease: "sine.inOut" }, 56.2);
+      tl.to("#root", { opacity: 0, duration: 0.6 }, 59.4);
+
+      /* ---------------- Subtítulos animados palabra a palabra ---------------- */
+      // [inicio, fin, texto]; las palabras entre *asteriscos* se resaltan.
+      const captions = [
+        [0.60, 3.55, "En *1946,* Ulam y von Neumann"],
+        [3.55, 6.50, "usan el azar para la física nuclear:"],
+        [6.50, 9.45, "nace *Monte Carlo.*"],
+        [10.60, 13.55, "En *1949,* von Neumann inventa"],
+        [13.55, 16.50, "los *cuadrados medios:* números"],
+        [16.50, 19.45, "que *parecen* aleatorios."],
+        [20.60, 23.55, "En *1961,* Geoffrey Gordon"],
+        [23.55, 26.50, "crea *GPSS* en IBM"],
+        [26.50, 29.45, "para simular *colas* y servidores."],
+        [30.60, 33.55, "En *1967,* Dahl y Nygaard"],
+        [33.55, 36.50, "lanzan *SIMULA 67:*"],
+        [36.50, 39.45, "el primer lenguaje con *objetos.*"],
+        [40.60, 43.55, "En *1997,* Matsumoto y Nishimura"],
+        [43.55, 46.50, "crean el *Mersenne Twister,*"],
+        [46.50, 49.45, "con periodo *2^19937 − 1.*"],
+        [50.60, 53.55, "Hoy simulamos *Poisson,*"],
+        [53.55, 56.50, "exponenciales y colas en *Python.*"],
+        [56.50, 59.45, "Tu turno: *¡simula* el mundo!"],
+      ];
+      const capRoot = document.getElementById("captions");
+      captions.forEach(([start, end, text], ci) => {
+        const wrap = document.createElement("div");
+        wrap.className = "clip cap";
+        wrap.id = "cap" + ci;
+        wrap.dataset.start = start;
+        wrap.dataset.duration = (end - start).toFixed(2);
+        wrap.dataset.trackIndex = "2";
+        const boxEl = document.createElement("div");
+        boxEl.className = "cap-box";
+        const words = text.split(" ");
+        words.forEach((w) => {
+          const s = document.createElement("span");
+          const key = w.startsWith("*") || w.endsWith("*");
+          s.className = "w" + (key ? " key" : "");
+          s.textContent = w.replace(/\*/g, "");
+          boxEl.appendChild(s);
+          boxEl.appendChild(document.createTextNode(" "));
+        });
+        wrap.appendChild(boxEl);
+        capRoot.appendChild(wrap);
+
+        const spans = boxEl.querySelectorAll(".w");
+        const step = Math.min(0.28, (end - start - 1.2) / spans.length);
+        spans.forEach((s, wi) => {
+          const t = start + wi * step;
+          tl.fromTo(s, { opacity: 0, y: 26, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: "back.out(2.5)" }, t);
+          if (s.classList.contains("key")) {
+            tl.to(s, { scale: 1.15, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.inOut" }, t + 0.22);
+          }
+        });
+        tl.to(spans, { opacity: 0, y: -16, duration: 0.2, stagger: 0.01 }, end - 0.3);
+      });
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
