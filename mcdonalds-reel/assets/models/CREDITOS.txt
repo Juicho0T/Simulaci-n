@@ -1,0 +1,4 @@
+Modelos 3D: Quaternius - Ultimate Animated Character Pack (https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+Licencia: CC0 1.0 (dominio público). No requiere atribución.
+Archivos: Suit_Male, Casual_Male, Casual2_Male, Chef_Male, Chef_Female, Casual_Female (.gltf)
+Cambios: tonos de piel y ojos, color de camisa en algunos personajes.
