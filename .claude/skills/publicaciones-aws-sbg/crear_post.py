@@ -21,6 +21,9 @@ try:
 except ImportError:
     sys.exit("Falta Pillow. Instálalo con: pip install Pillow")
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _comun  # noqa: E402  (usa las fuentes de assets/fonts en cualquier computadora)
+
 ANCHO = 1080
 ALTO = 1440
 ESCALA = 2  # se dibuja al doble de tamaño y se reduce al final para suavizar bordes

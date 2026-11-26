@@ -1,4 +1,5 @@
 salida/*.png
+fotos/
 __pycache__/
 .venv/
 .env
